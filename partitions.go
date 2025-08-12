@@ -21,8 +21,53 @@ import (
         "log"
         "strings"
         "strconv"
+		"fmt"
         "github.com/prometheus/client_golang/prometheus"
 )
+
+
+func GetPartitions() ([]string, error) {
+
+		cmd := exec.Command("sinfo", "-h", "-o", "%P")
+		out, err := cmd.Output()
+
+		if err != nil {
+			return nil, err
+		}
+
+		partitions := strings.Split(strings.TrimSpace(string(out)), "\n")
+
+		return partitions, nil
+}
+
+func GetActiveCores(name string) (string, error){
+		cmd := exec.Command("squeue", "-p", name, "--state", "r", "--format=%i,%C")
+		out, err := cmd.Output()
+		if err != nil{
+				return "", fmt.Errorf("squeue failed: %w", err)
+		}
+		return string(out), nil
+}
+
+func PartitionsDataTest() ([]string, error) {
+
+		partitions, err := GetPartitions()
+
+		if err != nil{
+			return nil, err
+		}
+
+		for _,p := range partitions{
+				ActiveCores, err := GetActiveCores(p)
+				if err != nil{
+					return nil, err
+				}
+				fmt.Println(ActiveCores)
+		}
+
+	return partitions, nil
+}
+
 
 func PartitionsData() []byte {
         cmd := exec.Command("sinfo", "-h", "-o%R,%C")
@@ -37,7 +82,8 @@ func PartitionsData() []byte {
         if err := cmd.Wait(); err != nil {
                 log.Fatal(err)
         }
-        return out
+        
+		return out
 }
 
 func PartitionsPendingJobsData() []byte {
@@ -147,3 +193,4 @@ func (pc *PartitionsCollector) Collect(ch chan<- prometheus.Metric) {
                 }
         }
 }
+
