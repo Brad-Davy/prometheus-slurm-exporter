@@ -1,16 +1,21 @@
 package main
 
-import "fmt"
+import(
+
+	"fmt"
+)
 
 func main() {
-		result,err := PartitionsDataTest()
+	
+	data, err := PartitionsDataTest()
+	OldData := PartitionsData()	
+
 	if err != nil{
 		fmt.Println(err)
 	}
 
-	newresult := PartitionsData()
-    fmt.Println("Old Output")
-    fmt.Println(string(newresult))
-	fmt.Println("New Output")
-	fmt.Println(result)
+	fmt.Println(data)
+	fmt.Println(OldData)
+
+
 }

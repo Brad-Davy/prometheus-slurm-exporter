@@ -21,7 +21,7 @@ import (
         "log"
         "strings"
         "strconv"
-		"fmt"
+				"fmt"
         "github.com/prometheus/client_golang/prometheus"
 )
 
@@ -40,34 +40,56 @@ func GetPartitions() ([]string, error) {
 		return partitions, nil
 }
 
-func GetActiveCores(name string) (string, error){
-		cmd := exec.Command("squeue", "-p", name, "--state", "r", "--format=%i,%C")
-		out, err := cmd.Output()
-		if err != nil{
-				return "", fmt.Errorf("squeue failed: %w", err)
+func GetActiveCores(name string) ([]byte, error) {
+	out, err := exec.Command("squeue", "-p", name, "--state=R", "--noheader", "--format=%C").Output()
+	if err != nil {
+		return nil, fmt.Errorf("squeue failed: %w", err)
+	}
+
+	text := strings.TrimSpace(string(out))
+
+	total := 0
+	if text != "" {
+		for _, line := range strings.Split(text, "\n") {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
+			n, err := strconv.Atoi(line)
+			if err != nil {
+				return nil, fmt.Errorf("parse cores %q: %w", line, err)
+			}
+			total += n
 		}
-		return string(out), nil
+	}
+
+	// Format like "partition,ALLOC/IDLE/OTHER/TOTAL" using your pattern
+	result := fmt.Sprintf("%s,%d/0/0/%d", name, total, total)
+	return []byte(result), nil
 }
 
-func PartitionsDataTest() ([]string, error) {
 
-		partitions, err := GetPartitions()
+func PartitionsDataTest() ([]byte, error) {
+    partitions, err := GetPartitions()
+    if err != nil {
+        return nil, err
+    }
 
-		if err != nil{
-			return nil, err
-		}
+    var CoresData []byte
 
-		for _,p := range partitions{
-				ActiveCores, err := GetActiveCores(p)
-				if err != nil{
-					return nil, err
-				}
-				fmt.Println(ActiveCores)
-		}
+    for _, p := range partitions {
+        ActiveCores, err := GetActiveCores(p)
+        if err != nil {
+            return nil, err
+        }
 
-	return partitions, nil
+        // Append the bytes from ActiveCores into CoresData
+        CoresData = append(CoresData, ActiveCores...)
+        CoresData = append(CoresData, '\n') // optional newline separator
+    }
+
+    return CoresData, nil
 }
-
 
 func PartitionsData() []byte {
         cmd := exec.Command("sinfo", "-h", "-o%R,%C")
