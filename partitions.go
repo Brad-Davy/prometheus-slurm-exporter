@@ -42,17 +42,21 @@ func GetPartitions() ([]string, error) {
 
 func GetTotalCores(PartitionName string) (int, error){
 
-	out, err := exec.Command("scontrol", "show", "partition", "debug", "|", "grep", "TotalCPUs").Output()
-	
-	fmt.Println(out)
-	
+	out, err := exec.Command("bash", "-c", "scontrol show partition debug | grep TotalCPUs").Output()
+
 	if err != nil{
 		return 0, err
 	}
 
-	//text := strings.TrimSpace(string(out))
-	
-	return 0, nil
+	val := string(out[22:23])        // slice → string
+	TotalCores, err := strconv.Atoi(val)
+
+	if err != nil{
+		fmt.Printf("Error: %w", err)
+		return 0, err
+	}
+
+	return TotalCores, err
 }
 
 
@@ -100,7 +104,6 @@ func PartitionsDataTest() ([]byte, error) {
         
 				ActiveCores, err := GetActiveCores(PartitionName)
         if err != nil {
-						fmt.Println("This error trigered")
             return nil, err
         }
 	
@@ -113,10 +116,10 @@ func PartitionsDataTest() ([]byte, error) {
         // Append the bytes from ActiveCores into CoresData
         CoresData = append(CoresData, ActiveCores...)
         CoresData = append(CoresData, '\n') // optional newline separator
-
 				TotalCoresData = append(TotalCoresData, TotalCores) 
     }
 		fmt.Printf("Total cores: %w", TotalCoresData)
+		fmt.Printf("Cores data: %w", CoresData)
     return CoresData, nil
 }
 
