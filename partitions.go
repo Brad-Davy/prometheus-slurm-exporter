@@ -40,6 +40,22 @@ func GetPartitions() ([]string, error) {
 		return partitions, nil
 }
 
+func GetTotalCores(PartitionName string) (int, error){
+
+	out, err := exec.Command("scontrol", "show", "partition", "debug", "|", "grep", "TotalCPUs").Output()
+	
+	fmt.Println(out)
+	
+	if err != nil{
+		return 0, err
+	}
+
+	//text := strings.TrimSpace(string(out))
+	
+	return 0, nil
+}
+
+
 func GetActiveCores(name string) ([]byte, error) {
 	out, err := exec.Command("squeue", "-p", name, "--state=R", "--noheader", "--format=%C").Output()
 	if err != nil {
@@ -70,24 +86,37 @@ func GetActiveCores(name string) ([]byte, error) {
 
 
 func PartitionsDataTest() ([]byte, error) {
-    partitions, err := GetPartitions()
-    if err != nil {
+    
+		partitions, err := GetPartitions()
+    
+		if err != nil {
         return nil, err
     }
 
     var CoresData []byte
+		var TotalCoresData []int
 
-    for _, p := range partitions {
-        ActiveCores, err := GetActiveCores(p)
+    for _, PartitionName := range partitions {
+        
+				ActiveCores, err := GetActiveCores(PartitionName)
         if err != nil {
+						fmt.Println("This error trigered")
             return nil, err
         }
+	
+				TotalCores, err := GetTotalCores(PartitionName)
+
+				if err != nil {
+            return nil, err
+				}
 
         // Append the bytes from ActiveCores into CoresData
         CoresData = append(CoresData, ActiveCores...)
         CoresData = append(CoresData, '\n') // optional newline separator
-    }
 
+				TotalCoresData = append(TotalCoresData, TotalCores) 
+    }
+		fmt.Printf("Total cores: %w", TotalCoresData)
     return CoresData, nil
 }
 
